@@ -136,7 +136,8 @@ void StaminaBar_DrawAll(PlayState* play) {
         } else {
             StaminaBar_DrawBar(play, x, y, barLength, 100.0f);
         }
-        x += (barLength + 6);
+        x += ((barLength / 2) + 6);
+        y += 6;
     }
 }
 
