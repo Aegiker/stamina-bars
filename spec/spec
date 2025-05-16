@@ -577,6 +577,7 @@ beginseg
     include "$(BUILD_DIR)/src/code/z_map_exp.o"
     include "$(BUILD_DIR)/src/code/z_map_data.o"
     include "$(BUILD_DIR)/src/code/z_parameter.o"
+    include "$(BUILD_DIR)/src/code/z_stamina_bar.o"
     include "$(BUILD_DIR)/src/code/z_path.o"
     include "$(BUILD_DIR)/src/code/z_frame_advance.o"
     include "$(BUILD_DIR)/src/code/z_player_lib.o"

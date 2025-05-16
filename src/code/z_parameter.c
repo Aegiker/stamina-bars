@@ -24,6 +24,7 @@
 #include "z64play.h"
 #include "z64player.h"
 #include "z64save.h"
+#include "z64staminabars.h"
 
 #include "assets/textures/parameter_static/parameter_static.h"
 #include "assets/textures/do_action_static/do_action_static.h"
@@ -3330,6 +3331,7 @@ void Interface_Draw(PlayState* play) {
         }
 
         Magic_DrawMeter(play);
+        StaminaBar_DrawAll(play);
         Minimap_Draw(play);
 
         if ((R_PAUSE_BG_PRERENDER_STATE != PAUSE_BG_PRERENDER_PROCESS) &&
@@ -4322,6 +4324,7 @@ void Interface_Update(PlayState* play) {
         }
 
         Magic_Update(play);
+        StaminaBar_Update(play);
     }
 
     if (gSaveContext.timerState == TIMER_STATE_OFF) {

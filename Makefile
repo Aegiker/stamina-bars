@@ -16,7 +16,7 @@ SHELL = /usr/bin/env bash
 # If COMPARE is 1, check the output md5sum after building. Set to 0 when modding.
 COMPARE ?= 1
 # If NON_MATCHING is 1, define the NON_MATCHING C flag when building. Set to 1 when modding.
-NON_MATCHING ?= 0
+NON_MATCHING ?= 1
 # If ORIG_COMPILER is 1, compile with QEMU_IRIX and the original compiler.
 ORIG_COMPILER ?= 0
 # If COMPILER is "gcc", compile with GCC instead of IDO.
@@ -37,7 +37,7 @@ COMPILER ?= ido
 #   gc-eu-mq       GameCube Europe/PAL Master Quest
 #   gc-jp-ce       GameCube Japan (Collector's Edition disc)
 #   ique-cn        iQue Player (Simplified Chinese)
-VERSION ?= gc-eu-mq-dbg
+VERSION ?= ntsc-1.0
 # Number of threads to extract and compress with.
 N_THREADS ?= $(shell nproc)
 # If DEBUG_OBJECTS is 1, produce additional debugging files such as objdump output or raw binaries for assets
@@ -49,12 +49,12 @@ MIPS_BINUTILS_PREFIX ?= mips-linux-gnu-
 N64_EMULATOR ?=
 # Set to override game region in the ROM header (options: JP, US, EU). This can be used to build a fake US version
 # of the debug ROM for better emulator compatibility, or to build US versions of NTSC N64 ROMs.
-# REGION ?= US
+REGION ?= US
 # Set to enable debug features regardless of ROM version.
 # Note that by enabling debug features on non-debug ROM versions, some debug ROM specific assets will not be included.
 # This means the debug test scenes and some debug graphics in the elf_msg actors will not work as expected.
 # This may also be used to disable debug features on debug ROMs by setting DEBUG_FEATURES to 0
-# DEBUG_FEATURES ?= 1
+DEBUG_FEATURES ?= 1
 
 # Version-specific settings
 REGIONAL_CHECKSUM := 0
@@ -805,6 +805,13 @@ ifeq ($(N64_EMULATOR),)
 	$(error Emulator path not set. Set N64_EMULATOR in the Makefile or define it as an environment variable)
 endif
 	$(N64_EMULATOR) $<
+
+test: $(ROM)
+ifdef WSL_DISTRO_NAME
+	powershell.exe -Command Start-Process $(ROM)
+else
+	simple64 $(ROM)
+endif
 
 
 .PHONY: all rom compress clean assetclean distclean venv setup disasm run
