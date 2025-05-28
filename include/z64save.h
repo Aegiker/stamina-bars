@@ -5,7 +5,6 @@
 #include "versions.h"
 #include "z64inventory.h"
 #include "z64math.h"
-#include "z64staminabars.h"
 
 typedef enum ZTargetSetting {
     /* 0 */ Z_TARGET_SETTING_SWITCH,
@@ -224,8 +223,6 @@ typedef struct SavePlayerData {
     /* 0x14  0x0030 */ s16 health; // "now_life"
     /* 0x16  0x0032 */ s8 magicLevel; // 0 for no magic/new load, 1 for magic, 2 for double magic
     /* 0x17  0x0033 */ s8 magic; // current magic available for use
-                       u8 staminaBars; // how many stamina bars does the player have
-                       u16 stamina; // how much stamina does the player have, total of all stamina bars
     /* 0x18  0x0034 */ s16 rupees;
     /* 0x1A  0x0036 */ u16 swordHealth;
     /* 0x1C  0x0038 */ u16 naviTimer;
