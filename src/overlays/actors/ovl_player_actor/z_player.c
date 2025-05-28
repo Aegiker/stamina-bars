@@ -50,8 +50,6 @@
 #include "z64play.h"
 #include "z64save.h"
 #include "z64skin_matrix.h"
-#include "segment_symbols.h"
-#include "segmented_address.h"
 
 #include "assets/objects/gameplay_keep/gameplay_keep.h"
 #include "assets/objects/object_link_child/object_link_child.h"
@@ -361,7 +359,6 @@ void Player_Action_HookshotFly(Player* this, PlayState* play);
 void Player_Action_80850C68(Player* this, PlayState* play);
 void Player_Action_80850E84(Player* this, PlayState* play);
 void Player_Action_CsAction(Player* this, PlayState* play);
-void func_80837C0C(PlayState* play, Player* this, s32 damageResponseType, f32 speed, f32 yVelocity, s16 yRot, s32 invincibilityTimer);
 
 // .bss part 1
 
@@ -3535,18 +3532,6 @@ void Player_UseItem(PlayState* play, Player* this, s32 item) {
 
     itemAction = Player_ItemToItemAction(item);
 
-    if (itemAction != PLAYER_IA_NONE) {
-        f32 energy = (CLAMP_MAX(gSaveContext.save.info.playerData.stamina, STAMINA_PER_BAR(0)) / (f32)STAMINA_PER_BAR(0));
-        f32 exhaustion = (1.0f - energy) * 4.0f;
-
-        if (energy < 0.2f) {
-            return;
-        }
-    }
-
-    // using items is EXHAUSTING!
-    gSaveContext.save.info.playerData.stamina = CLAMP_MIN(gSaveContext.save.info.playerData.stamina - 20, 0);
-
     if (((this->heldItemAction == this->itemAction) &&
          (!(this->stateFlags1 & PLAYER_STATE1_SHIELDING) || (Player_ActionToMeleeWeapon(itemAction) != 0) ||
           (itemAction == PLAYER_IA_NONE))) ||
@@ -4588,14 +4573,6 @@ void func_80837948(PlayState* play, Player* this, s32 arg2) {
  * prevents taking damage.
  */
 void Player_SetIntangibility(Player* this, s32 timer) {
-    f32 energy = (CLAMP_MAX(gSaveContext.save.info.playerData.stamina, STAMINA_PER_BAR(0)) / (f32)STAMINA_PER_BAR(0));
-    f32 exhaustion = (1.0f - energy) * 4.0f;
-
-    if (energy < 0.2f) {
-        this->invincibilityTimer = 0;
-        return;
-    }
-
     if (this->invincibilityTimer >= 0) {
         this->invincibilityTimer = timer;
         this->damageFlickerAnimCounter = 0;
@@ -4613,14 +4590,6 @@ void Player_SetIntangibility(Player* this, s32 timer) {
  * prevents taking damage.
  */
 void Player_SetInvulnerability(Player* this, s32 timer) {
-    f32 energy = (CLAMP_MAX(gSaveContext.save.info.playerData.stamina, STAMINA_PER_BAR(0)) / (f32)STAMINA_PER_BAR(0));
-    f32 exhaustion = (1.0f - energy) * 4.0f;
-
-    if (energy < 0.2f) {
-        this->invincibilityTimer = 0;
-        return;
-    }
-
     if (this->invincibilityTimer > timer) {
         this->invincibilityTimer = timer;
     }
@@ -9309,13 +9278,6 @@ void Player_Action_808435C4(Player* this, PlayState* play) {
     s32 interruptResult;
     LinkAnimationHeader* anim;
     f32 frames;
-    f32 energy = (CLAMP_MAX(gSaveContext.save.info.playerData.stamina, STAMINA_PER_BAR(0)) / (f32)STAMINA_PER_BAR(0));
-    f32 exhaustion = (1.0f - energy) * 4.0f;
-
-    if (energy < 0.2f) {
-        func_80837C0C(play, this, PLAYER_HIT_RESPONSE_KNOCKBACK_LARGE, 0.0f, 0.0f, -this->actor.shape.rot.y, 0);
-        return;
-    }
 
     Player_DecelerateToZero(this);
 
@@ -11738,118 +11700,6 @@ static f32 sFloorConveyorSpeeds[CONVEYOR_SPEED_MAX - 1] = {
     3.0f, // CONVEYOR_SPEED_FAST
 };
 
-#define VIEWER_LINK_ANIMATION_OFFSET(addr, offset) \
-    (((uintptr_t)_link_animetionSegmentRomStart) + ((uintptr_t)(addr)) - ((uintptr_t)_link_animetionSegmentStart) + \
-     (offset))
-
-void Player_LoadAnimation(PlayState* play, LinkAnimationHeader* anim, f32* animFrame, Vec3s* destination) {
-    LinkAnimationHeader* linkAnimHeader;
-    LinkAnimationHeader* offsetAnim;
-    Player* player = GET_PLAYER(play);
-
-    offsetAnim = anim;
-
-    if (offsetAnim == NULL) {
-        return;
-    }
-
-    if (*animFrame > Animation_GetLastFrame(offsetAnim)) {
-        *animFrame -= Animation_GetLastFrame(offsetAnim);
-    } else if (*animFrame < 0.0f) {
-        *animFrame += Animation_GetLastFrame(offsetAnim);
-    }
-
-    linkAnimHeader = SEGMENTED_TO_VIRTUAL(offsetAnim);
-    DmaMgr_RequestSync(destination, 
-        VIEWER_LINK_ANIMATION_OFFSET(linkAnimHeader->segment, ((sizeof(Vec3s) * (player->skelAnime.limbCount) + 2) * ((s16)*animFrame))),
-        sizeof(Vec3s) * player->skelAnime.limbCount + 2);
-}
-
-static u8 sStaminaBodyLimbCopyMap[PLAYER_LIMB_MAX] = {
-    false, // PLAYER_LIMB_NONE
-    false, // PLAYER_LIMB_ROOT
-    false, // PLAYER_LIMB_WAIST
-    false, // PLAYER_LIMB_LOWER
-    false, // PLAYER_LIMB_R_THIGH
-    false, // PLAYER_LIMB_R_SHIN
-    false, // PLAYER_LIMB_R_FOOT
-    false, // PLAYER_LIMB_L_THIGH
-    false, // PLAYER_LIMB_L_SHIN
-    false, // PLAYER_LIMB_L_FOOT
-    true,  // PLAYER_LIMB_UPPER
-    true,  // PLAYER_LIMB_HEAD
-    true,  // PLAYER_LIMB_HAT
-    true,  // PLAYER_LIMB_COLLAR
-    true,  // PLAYER_LIMB_L_SHOULDER
-    true,  // PLAYER_LIMB_L_FOREARM
-    false,  // PLAYER_LIMB_L_HAND
-    true,  // PLAYER_LIMB_R_SHOULDER
-    true,  // PLAYER_LIMB_R_FOREARM
-    false,  // PLAYER_LIMB_R_HAND
-    false,  // PLAYER_LIMB_SHEATH
-    true   // PLAYER_LIMB_TORSO
-};
-
-void Player_UpdateStaminaAnimation(Player* this, PlayState* play) {
-    f32 energy = 1.0f;
-    f32 exhaustion;
-    Vec3f sibukiVelocity = { 0.0f, 0.0f, 0.0f };
-    Vec3f sibukiAcceleration = { 0.0f, 0.0f, 0.0f };
-    u8 i;
-    s16 randDirection;
-    
-    energy = (CLAMP_MAX(gSaveContext.save.info.playerData.stamina, STAMINA_PER_BAR(0)) / (f32)STAMINA_PER_BAR(0));
-    exhaustion = (1.0f - energy) * 4.0f;
-
-    this->speedXZ *= energy;
-    
-    Player_LoadAnimation(play, STAMINA_ANIMATION, &this->staminaFrame, this->staminaJointTable);
-    this->staminaInterp = energy;
-    this->staminaFrame += exhaustion;
-    if (this->staminaInterp != 0.0f) {
-        AnimTaskQueue_AddCopyUsingMapInverted(play, this->skelAnime.limbCount, this->staminaJointTable,
-            this->skelAnime.jointTable, sStaminaBodyLimbCopyMap);
-        AnimTaskQueue_AddInterp(play, this->skelAnime.limbCount, this->skelAnime.jointTable,
-            this->staminaJointTable, 1.0f - this->staminaInterp);
-    } else {
-        AnimTaskQueue_AddCopyUsingMap(play, this->skelAnime.limbCount, this->skelAnime.jointTable,
-                                        this->staminaJointTable, sStaminaBodyLimbCopyMap);
-    }
-
-    if (energy != 1.0f) {
-        // pant
-        if ((play->gameplayFrames % (u32)(32 / exhaustion)) == 0) {
-            Player_PlayVoiceSfx(this, NA_SE_VO_LI_BREATH_REST);
-        }
-        if (((play->gameplayFrames + 8) % (u32)(32 / exhaustion)) == 0) {
-            Sfx_PlaySfxCentered(NA_SE_SY_HITPOINT_ALARM);
-        }
-
-        if ((play->gameplayFrames % (u32)(8 / exhaustion)) == 0) {
-            for (i = 0; i < 4; i++) {
-                sibukiVelocity.x = Rand_CenteredFloat(2.0f);
-                sibukiVelocity.y = Rand_CenteredFloat(2.0f);
-                sibukiVelocity.z = Rand_CenteredFloat(2.0f);
-                randDirection = Rand_ZeroOne() * 1.99f;
-                EffectSsSibuki_Spawn(play, &this->bodyPartsPos[PLAYER_BODYPART_HAT], &sibukiVelocity, &sibukiAcceleration, 0, randDirection, 40);
-            }
-        }
-    }
-
-    // moving is exhausting
-    if (this->speedXZ != 0.0f) {
-        gSaveContext.save.info.playerData.stamina = CLAMP_MIN(gSaveContext.save.info.playerData.stamina - CLAMP_MIN((this->speedXZ + 2.0f) * 0.5f, 3), 0);
-    }
-    // swords are exhausting
-    if (this->meleeWeaponState == 1) {
-        if (Player_HoldsTwoHandedWeapon(this)) {
-            gSaveContext.save.info.playerData.stamina = CLAMP_MIN(gSaveContext.save.info.playerData.stamina - 48, 0);
-        } else {
-            gSaveContext.save.info.playerData.stamina = CLAMP_MIN(gSaveContext.save.info.playerData.stamina - 24, 0);
-        }
-    }
-}
-
 void Player_UpdateCommon(Player* this, PlayState* play, Input* input) {
     s32 pad;
 
@@ -12226,8 +12076,6 @@ void Player_UpdateCommon(Player* this, PlayState* play, Input* input) {
 
         Collider_UpdateCylinder(&this->actor, &this->cylinder);
 
-        Player_UpdateStaminaAnimation(this, play);
-        
         if (!(this->stateFlags2 & PLAYER_STATE2_14)) {
             if (!(this->stateFlags1 & (PLAYER_STATE1_DEAD | PLAYER_STATE1_13 | PLAYER_STATE1_14 | PLAYER_STATE1_23))) {
                 CollisionCheck_SetOC(play, &play->colChkCtx, &this->cylinder.base);

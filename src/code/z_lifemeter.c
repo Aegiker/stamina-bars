@@ -326,8 +326,6 @@ void Health_DrawMeter(PlayState* play) {
     s32 curCombineModeSet = 0;
     u8* curBgImgLoaded = NULL;
     s32 ddHeartCountMinusOne = gSaveContext.save.info.inventory.defenseHearts - 1;
-    f32 energy = (CLAMP_MAX(gSaveContext.save.info.playerData.stamina, STAMINA_PER_BAR(0)) / (f32)STAMINA_PER_BAR(0));
-    f32 exhaustion = ((1.0f - energy)) + 1.0f;
 
     OPEN_DISPS(gfxCtx, "../z_lifemeter.c", 353);
 
@@ -486,21 +484,10 @@ void Health_DrawMeter(PlayState* play) {
             }
 
             {
-                // given I put in at least a morsel of effort into optimizing some of the other things,
-                // this is a big fuck you to all of that
                 Mtx* matrix = GRAPH_ALLOC(gfxCtx, sizeof(Mtx));
-                MtxF matrixF;
                 Matrix_SetTranslateScaleMtx2(
                     matrix, 1.0f - (0.32f * beatingHeartPulsingSize), 1.0f - (0.32f * beatingHeartPulsingSize),
                     1.0f - (0.32f * beatingHeartPulsingSize), -130.0f + offsetX, 94.5f - offsetY, 0.0f);
-                Matrix_MtxToMtxF(matrix, &matrixF);
-                Matrix_Push();
-                Matrix_Put(&matrixF);
-                Matrix_Scale(exhaustion, exhaustion, exhaustion, MTXMODE_APPLY);
-                Matrix_Get(&matrixF);
-                Matrix_MtxFToMtx(&matrixF, matrix);
-                Matrix_Pop();
-                
                 gSPMatrix(OVERLAY_DISP++, matrix, G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
                 gSPVertex(OVERLAY_DISP++, beatingHeartVtx, 4, 0);
                 gSP1Quadrangle(OVERLAY_DISP++, 0, 2, 3, 1, 0);
@@ -522,11 +509,9 @@ void Health_DrawMeter(PlayState* play) {
 
 void Health_UpdateBeatingHeart(PlayState* play) {
     InterfaceContext* interfaceCtx = &play->interfaceCtx;
-    f32 energy = (CLAMP_MAX(gSaveContext.save.info.playerData.stamina, STAMINA_PER_BAR(0)) / (f32)STAMINA_PER_BAR(0));
-    u8 exhaustion = (u8)(((1.0f - energy)) + 1.0f);
 
     if (interfaceCtx->beatingHeartOscillatorDirection != 0) {
-        interfaceCtx->beatingHeartOscillator -= exhaustion;
+        interfaceCtx->beatingHeartOscillator--;
         if (interfaceCtx->beatingHeartOscillator <= 0) {
             interfaceCtx->beatingHeartOscillator = 0;
             interfaceCtx->beatingHeartOscillatorDirection = 0;
@@ -535,13 +520,12 @@ void Health_UpdateBeatingHeart(PlayState* play) {
             }
         }
     } else {
-        interfaceCtx->beatingHeartOscillator += exhaustion;
+        interfaceCtx->beatingHeartOscillator++;
         if (interfaceCtx->beatingHeartOscillator >= 10) {
             interfaceCtx->beatingHeartOscillator = 10;
             interfaceCtx->beatingHeartOscillatorDirection = 1;
         }
     }
-    interfaceCtx->beatingHeartOscillator = CLAMP(interfaceCtx->beatingHeartOscillator, 0, 10);
 }
 
 u32 Health_IsCritical(void) {

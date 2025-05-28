@@ -11,9 +11,6 @@
 #include "sys_matrix.h"
 #include "terminal.h"
 #include "translation.h"
-#include "z64save.h"
-#include "z64staminabars.h"
-#include "rand.h"
 
 vu32 sLogOnNextViewInit = true;
 
@@ -249,10 +246,8 @@ void View_SetDistortion(View* view, Vec3f orientation, Vec3f scale, f32 speed) {
 
 s32 View_StepDistortion(View* view, Mtx* projectionMtx) {
     MtxF projectionMtxF;
-    f32 energy = (CLAMP_MAX(gSaveContext.save.info.playerData.stamina, STAMINA_PER_BAR(0)) / (f32)STAMINA_PER_BAR(0));
-    f32 exhaustion = (1.0f - energy) * 0.012f;
 
-    if (view->distortionSpeed == 0.0f && exhaustion == 0.0f) {
+    if (view->distortionSpeed == 0.0f) {
         return false;
     } else if (view->distortionSpeed == 1.0f) {
         view->curDistortionOrientation = view->distortionOrientation;
@@ -283,14 +278,6 @@ s32 View_StepDistortion(View* view, Mtx* projectionMtx) {
     Matrix_RotateZ(-view->curDistortionOrientation.z, MTXMODE_APPLY);
     Matrix_RotateY(-view->curDistortionOrientation.y, MTXMODE_APPLY);
     Matrix_RotateX(-view->curDistortionOrientation.x, MTXMODE_APPLY);
-
-    Matrix_Scale(Rand_CenteredFloat(exhaustion * 8.0f) + 1.0f, Rand_CenteredFloat(exhaustion * 8.0f) + 1.0f, (Rand_CenteredFloat(exhaustion * 8.0f) + 1.0f) + (exhaustion * 8.0f), MTXMODE_APPLY);
-    Matrix_RotateZ(Rand_CenteredFloat(exhaustion * 2.0f), MTXMODE_APPLY);
-    Matrix_RotateY(Rand_CenteredFloat(exhaustion * 2.0f), MTXMODE_APPLY);
-    Matrix_RotateX(Rand_CenteredFloat(exhaustion * 2.0f), MTXMODE_APPLY);
-
-
-
     MATRIX_TO_MTX(projectionMtx, "../z_view.c", 566);
 
     return true;

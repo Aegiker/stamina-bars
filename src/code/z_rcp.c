@@ -6,8 +6,6 @@
 #include "main.h"
 #include "regs.h"
 #include "z64play.h"
-#include "z64staminabars.h"
-#include "z64save.h"
 
 Gfx sSetupDL[SETUPDL_MAX][6] = {
     {
@@ -1465,9 +1463,6 @@ Gfx* Gfx_EnvColor(GraphicsContext* gfxCtx, s32 r, s32 g, s32 b, s32 a) {
  * Letterbox is also applied here, and will share the color of the screen base.
  */
 void Gfx_SetupFrame(GraphicsContext* gfxCtx, u8 r, u8 g, u8 b, u8 mirrorStatus) {
-    f32 energy = (CLAMP_MAX(gSaveContext.save.info.playerData.stamina, STAMINA_PER_BAR(0)) / (f32)STAMINA_PER_BAR(0));
-    f32 exhaustion = (1.0f - energy) * 50.0f;
-
     u16* primaryFbuf = (mirrorStatus == 1) ? gfxCtx->redrawFramebuffer : gfxCtx->curFrameBuffer;
 
     OPEN_DISPS(gfxCtx, "../z_rcp.c", 2386);
@@ -1497,7 +1492,7 @@ void Gfx_SetupFrame(GraphicsContext* gfxCtx, u8 r, u8 g, u8 b, u8 mirrorStatus) 
     gDPSetDepthImage(OVERLAY_DISP++, gZBuffer);
 
     if ((R_PAUSE_BG_PRERENDER_STATE <= PAUSE_BG_PRERENDER_SETUP) && (gTransitionTileState <= TRANS_TILE_SETUP)) {
-        s32 letterboxSize = Letterbox_GetSize() + exhaustion;
+        s32 letterboxSize = Letterbox_GetSize();
 
 #if DEBUG_FEATURES
         if (R_HREG_MODE == HREG_MODE_SETUP_FRAME) {

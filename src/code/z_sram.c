@@ -255,8 +255,8 @@ static SavePlayerData sDebugSavePlayerData = {
     0xE0,               // health
     0,                  // magicLevel
     MAGIC_NORMAL_METER, // magic
-    15,                 // staminaBars
-    0x7FFF,             // stamina
+    8,                  // staminaBars
+    0,                  // stamina
     150,                // rupees
     8,                  // swordHealth
     0,                  // naviTimer

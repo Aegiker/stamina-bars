@@ -12,8 +12,6 @@
 
 #define STAMINA_REFILL_RATE 2
 
-#define STAMINA_ANIMATION &gPlayerAnim_link_wait_heat2_20f
-
 void StaminaBar_DrawAll(PlayState* play);
 void StaminaBar_Update(PlayState* play);
 
