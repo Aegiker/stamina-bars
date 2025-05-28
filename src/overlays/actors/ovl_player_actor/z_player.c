@@ -2096,7 +2096,7 @@ void Player_ApplyAnimMovementScaledByAge(Player* this, s32 movementFlags) {
     this->skelAnime.movementFlags = movementFlags;
     this->skelAnime.prevTransl = this->skelAnime.baseTransl;
 
-    SkelAnime_UpdateTranslation(&this->skelAnime, &diff, this->actor.shape.rot.y);
+    SkelAnime_UpdateTranslation(&this->skelAnime, &diff, this->actor.shape.rot.y, (this->actor.category == ACTORCAT_PLAYER && R_ENABLE_MIRROR) ? -1 : 1);
 
     if (movementFlags & ANIM_FLAG_UPDATE_XZ) {
         if (!LINK_IS_ADULT) {
@@ -4466,6 +4466,14 @@ s32 func_80837818(Player* this) {
     s32 controlStickDirection = this->controlStickDirections[this->controlStickDataIndex];
     s32 sp18;
 
+    if (R_ENABLE_MIRROR) {
+        if (controlStickDirection == 3) {
+            controlStickDirection = 1;
+        } else if (controlStickDirection == 1) {
+            controlStickDirection = 3;
+        }
+    }
+
     if (this->heldItemAction == PLAYER_IA_HAMMER) {
         if (controlStickDirection <= PLAYER_STICK_DIR_NONE) {
             controlStickDirection = PLAYER_STICK_DIR_FORWARD;
@@ -6392,7 +6400,17 @@ s32 Player_TryRoll(Player* this, PlayState* play) {
 }
 
 void func_8083BCD0(Player* this, PlayState* play, s32 controlStickDirection) {
-    func_80838940(this, D_80853D4C[controlStickDirection][0], !(controlStickDirection & 1) ? 5.8f : 3.5f, play,
+    u8 mirrorAnimIndex = controlStickDirection;
+
+    if (R_ENABLE_MIRROR) {
+        if (controlStickDirection == 3) {
+            mirrorAnimIndex = 1;
+        } else if (controlStickDirection == 1) {
+            mirrorAnimIndex = 3;
+        }
+    }
+
+    func_80838940(this, D_80853D4C[mirrorAnimIndex][0], !(controlStickDirection & 1) ? 5.8f : 3.5f, play,
                   NA_SE_VO_LI_SWORD_N);
 
     if (controlStickDirection) {}
@@ -7174,6 +7192,7 @@ void func_8083DDC8(Player* this, PlayState* play) {
 
         targetPitch = this->speedXZ * 200.0f;
         targetRoll = (s16)(this->yaw - this->actor.shape.rot.y) * this->speedXZ * 0.1f;
+        if (R_ENABLE_MIRROR) targetRoll = -targetRoll;
 
         targetPitch = CLAMP(targetPitch, -4000, 4000);
         targetRoll = CLAMP(-targetRoll, -4000, 4000);
@@ -8027,6 +8046,7 @@ void func_80840138(Player* this, f32 arg1, s16 arg2) {
         } else {
             this->unk_874 = 1.0f;
         }
+        if (R_ENABLE_MIRROR) this->unk_874 = (this->unk_874 == 1.0f) ? 0.0f : 1.0f;
     }
 
     Math_StepToF(&this->unk_870, this->unk_874, 0.3f);
@@ -9216,7 +9236,7 @@ void Player_Action_80843188(Player* this, PlayState* play) {
         f32 sp40;
 
         sp54 = sControlInput->rel.stick_y * 100;
-        sp50 = sControlInput->rel.stick_x * -120;
+        sp50 = sControlInput->rel.stick_x * (R_ENABLE_MIRROR) ? 120 : -120;
         sp4E = this->actor.shape.rot.y - Camera_GetInputDirYaw(GET_ACTIVE_CAM(play));
 
         sp40 = Math_CosS(sp4E);
@@ -11835,6 +11855,10 @@ void Player_UpdateCommon(Player* this, PlayState* play, Input* input) {
 
     sControlInput = input;
 
+    if (this->actor.category == ACTORCAT_PLAYER && R_ENABLE_MIRROR) {
+        sControlInput->rel.stick_x = -sControlInput->rel.stick_x;
+    }
+
     if (this->unk_A86 < 0) {
         this->unk_A86++;
         if (this->unk_A86 == 0) {
@@ -12473,7 +12497,12 @@ void Player_Draw(Actor* thisx, PlayState* play2) {
         gSPClearGeometryMode(POLY_OPA_DISP++, G_CULL_BOTH);
         gSPClearGeometryMode(POLY_XLU_DISP++, G_CULL_BOTH);
 
-        Player_DrawGameplay(play, this, lod, gCullBackDList, overrideLimbDraw);
+        if (R_ENABLE_MIRROR) {
+            Matrix_Scale(-1.0f, 1.0f, 1.0f, MTXMODE_APPLY);
+            Player_DrawGameplay(play, this, lod, gCullFrontDList, overrideLimbDraw);
+        } else {
+            Player_DrawGameplay(play, this, lod, gCullBackDList, overrideLimbDraw);
+        }
 
         if (this->invincibilityTimer > 0) {
             POLY_OPA_DISP = Play_SetFog(play, POLY_OPA_DISP);
